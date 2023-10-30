@@ -4,6 +4,8 @@ from models import storage
 from models.city import City
 from models.place import Place
 from models.user import User
+from models.state import State
+from models.amenity import Amenity
 from flask import abort, jsonify, request
 from api.v1.views import app_views
 
@@ -81,3 +83,61 @@ def update_place(place_id):
             setattr(place, key, value)
     storage.save()
     return jsonify(place.to_dict()), 200
+
+
+@app_views.route('/places_search', methods=['POST'])
+def search_places():
+    """API for places search"""
+    data = request.get_json()
+    if not data:
+        abort(400, "Not a JSON")
+
+    states = data.get('states', [])
+    cities = data.get('cities', [])
+    amenities = data.get('amenities', [])
+
+    places_coll = []
+    if not (states and cities and amenities):
+        places_coll = storage.all(Place).values()
+
+    else:
+        states_coll = []
+        for state_id in states:
+            state = storage.get(State, state_id)
+            if state:
+                states_coll.append(state)
+
+        cities_coll = []
+        for state in states_coll:
+            for city in state.cities:
+                cities_coll.append(city)
+
+        for city_id in cities:
+            city = storage.get(City, city_id)
+            if city:
+                cities_coll.append(city)
+
+        cities_coll = list(set(cities_coll))
+
+        places_coll = []
+        for city in cities_coll:
+            for place in city.places:
+                places_coll.append(place)
+
+    amenities_coll = []
+    for amenity_id in amenities:
+        amenity = storage.get(Amenity, amenity_id)
+        if amenity:
+            amenities_coll.append(amenity)
+    places_coll = list(set(places_coll))
+
+    final_result = []
+    for place in places_coll:
+        place_dict = place.to_dict()
+        if amenities_coll:
+            if all(amenity in place.amenities for amenity in amenities_coll):
+                final_result.append(place_dict)
+        else:
+            final_result.append(place_dict)
+
+    return jsonify(final_result)
