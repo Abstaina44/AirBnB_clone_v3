@@ -4,7 +4,6 @@ Contains the FileStorage class
 """
 
 import json
-import models
 from models.amenity import Amenity
 from models.base_model import BaseModel
 from models.city import City
@@ -12,7 +11,6 @@ from models.place import Place
 from models.review import Review
 from models.state import State
 from models.user import User
-from hashlib import md5
 
 classes = {"Amenity": Amenity, "BaseModel": BaseModel, "City": City,
            "Place": Place, "Review": Review, "State": State, "User": User}
@@ -57,7 +55,7 @@ class FileStorage:
                 jo = json.load(f)
             for key in jo:
                 self.__objects[key] = classes[jo[key]["__class__"]](**jo[key])
-        Exception:
+        except Exception:
             pass
 
     def delete(self, obj=None):
@@ -72,25 +70,16 @@ class FileStorage:
         self.reload()
 
     def get(self, cls, id):
-        """A method to retrieve one object"""
-        if cls not in classes.values():
-            return None
-        all_cls = models.storage.all(cls)
-        for val in all_cls.values():
-            if (val.id == id):
-                return val
-
-        return None
+        """Returns object based on the class and its ID"""
+        key = "{}.{}".format(cls.__name__, id)
+        return self.__objects.get(key, None)
 
     def count(self, cls=None):
-        """Returns the number of objects in storage matching"""
-        all_cls = classes.values()
-
-        if not cls:
-            count = 0
-            for clss in all_cls:
-                count += len(models.storage.all(clss).values())
-        else:
-            count = len(models.storage.all(cls).values())
-
+        """Count the number of objects in storage"""
+        if cls is None:
+            return len(self.__objects)
+        count = 0
+        for obj in self.__objects.values():
+            if isinstance(obj, cls):
+                count += 1
         return count
