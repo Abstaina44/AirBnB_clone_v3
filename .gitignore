@@ -4,3 +4,4 @@ __pycache/
 ../../.vscode/
 ../../__pycache__/test_get_count.cpython-311.pyc
 ../../web_flask/__pycache__/
+../temp_back
